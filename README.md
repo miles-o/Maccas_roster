@@ -12,7 +12,8 @@ If there are any problems add an issue to the issue section or if you know me ju
 6. Install selenium in the terminal using: pip install selenium
 7. Find your chrome version by clicking the 3 dots at the top right in chrome and in settings going to about chrome, your version will be listed here
 8. Install the chromedriver for your version at [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads)
-9. You should be good to go!
+9. Add your google login details to the login_details.txt file
+10. You should be good to go!
 
 ## How to use
 1. Open vscode and clock on open folder, navigate to folder containing all files for this program
