@@ -1,5 +1,6 @@
 # Read me
 This takes your roster from myjob, converts it to a csv, then takes you to google calender to import with only a few clicks
+If there are any problems add an issue to the issue section or if you know me just tell me and I'll sort it out :)
 
 ## Setup
 1. Install python at [https://www.python.org/downloads/](https://www.python.org/downloads/)
