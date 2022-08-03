@@ -18,6 +18,6 @@ If there are any problems add an issue to the issue section or if you know me ju
 ## How to use
 1. Open vscode and clock on open folder, navigate to folder containing all files for this program
 2. Click run in the top right corner
-3. Let the code run until in the google calender setting page
-4. Click upload files on google calender and select the roster.csv located in the code folder
-5. Select calender to import into and import the shifts
+3. Let the code run until in the google calendar setting page
+4. Click upload files on google calendar and select the roster.csv located in the code folder
+5. Select calendar to import into and import the shifts
