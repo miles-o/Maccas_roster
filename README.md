@@ -10,12 +10,10 @@ If there are any problems add an issue to the issue section or if you know me ju
 4. Open the command prompt/terminal and check the python installation with: python3 --version, it should say something like "Python 3.10.5"
 5. Make sure pip is up to date in the terminal using: python3 -m pip install pip --upgrade pip
 6. Install selenium in the terminal using: pip install selenium
-7. Find your chrome version by clicking the 3 dots at the top right in chrome and in settings going to about chrome, your version will be listed here
-8. Install the chromedriver for your version at [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads)
-9. Add your google login details to the login_details.txt file
-10. Download all files and put them in a folder
-11. Delete the placeholder.txt file in the data folder
-12. You should be good to go!
+7. Add your google login details to the login_details.txt file
+8. Download all files and put them in a folder
+10. Delete the placeholder.txt file in the data folder
+11. You should be good to go!
 
 ## How to use
 1. Open vscode and clock on open folder, navigate to folder containing all files for this program
