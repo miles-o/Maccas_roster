@@ -7,6 +7,9 @@ from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException   
 from selenium.webdriver.common.action_chains import ActionChains
+import chromedriver_autoinstaller 
+
+chromedriver_autoinstaller.install()
 
 driver = webdriver.Chrome("/usr/local/bin/chromedriver_v_104")
 actions = ActionChains(driver)
