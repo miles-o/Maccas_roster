@@ -7,9 +7,6 @@ from selenium.webdriver.common.keys import Keys
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException   
 from selenium.webdriver.common.action_chains import ActionChains
-import chromedriver_autoinstaller 
-
-chromedriver_autoinstaller.install()
 
 driver = webdriver.Chrome("/usr/local/bin/chromedriver_v_104")
 actions = ActionChains(driver)
@@ -170,33 +167,75 @@ def get_shifts():
                 #/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/div[2]/div[3]/div[2]/span[2]
 
     #empty dictionary for shifts and hours
-    shifts = {}
-    hours = {}
+    #shifts format:
+    # {
+    # "shift1": {
+    #   "start": start datetime, 
+    #   "end": end datetime
+    #   }, 
+    # "shift2": {
+    #   "start": start datetime, 
+    #   "end": end datetime
+    #   },
+    # }
 
+    #hours format:
+    #{
+    # "week_1": {
+    #       "shift1": [weekday, length],
+    #       "shift2": [weekday, length],
+    #   }
+    # "week_2": {
+    #       "shift1": [weekday, length],
+    #       "shift2": [weekday, length],
+    #   }
+    # }
+    shifts = {}
+    hours = {
+        "week_1": {}
+    }
+
+    hours_n = 1
+    shifts_n = 1
+    new_week = False
     #do this max 10 times cus cant do more than 5 shifts in a week and like it can be 2 weeks 
-    for i in range(1, 11):
+    for i in range(1, 12):
         #check if that shit exists cus if it dont we fucked        
         element_exists = check_exists_by_xpath(shift_xpath)
+        #need a reserve xpath to get to next week because adding the new div[2] at the end of creating shift will break it
         if element_exists == True:
             #make the shift
-            shifts[f"shift{i}"] = create_shift(shift_xpath)
+            shifts.update({f"shift{shifts_n}": create_shift(shift_xpath)})
             #get the hours
-            hours[f"shift{i}"] = get_hours(shift_xpath)
+            if new_week == False:
+                hours['week_1'].update({f"shift{hours_n}": get_hours(shift_xpath)}) 
+            elif new_week == True:
+                hours['week_2'].update({f"shift{hours_n}": get_hours(shift_xpath)})
+            res_shift_xpath = shift_xpath
 
             #change the xpath around, basically just adding another div[2]
             shift_xpath = shift_xpath.split("/")
             shift_xpath.insert(len(shift_xpath)-1, 'div[2]')
             shift_xpath = '/'.join(shift_xpath)
+            hours_n = hours_n + 1
+            shifts_n = shifts_n + 1
         else:
+            shift_xpath = res_shift_xpath
             shift_xpath = shift_xpath.split("/")
             shift_xpath.insert(len(shift_xpath)-1, 'div[3]')
             shift_xpath = '/'.join(shift_xpath)
             element_exists = check_exists_by_xpath(shift_xpath)
+            hours_n = 1
 
+        #i is currently increasing when xpath is changed to next week need to fix
             if element_exists == True:
+                hours.update({"week_2": {}})
+                new_week = True
                 continue
             else:
                 break
+        print(f"shifts: {shifts}\n")
+        
 
     return shifts, hours
 
@@ -227,7 +266,7 @@ def write_to_roster_csv(shifts):
         writer.writerow(header)
 
     #do it until no more shifts
-    for i in range(1, 6):
+    for i in range(1, 11):
         if f"shift{i}" in shifts:
             shift = shifts[f'shift{i}']
             get_ready_for_csv(shift)
@@ -246,81 +285,104 @@ def import_to_calendar():
     # file_upload = driver.find_element(By.XPATH, "/html/body/div[2]/div[1]/div[1]/div[2]/div[2]/div/div/div/div[1]/div[1]/div/form/label")
     # file_upload.send_keys("roster.csv")
 
+#{
+#'week_1': {
+#   'day': ['day', 'Monday', 'Tuesday', 'Wednesday', 'Friday', 'Saturday'], 
+#   'shift_lengths': ['hours', 3.0, 4.0, 3.5, 4.0, 3.5, 18.0], 
+#   'pay_types': ['pay type', 'regular', 'regular', 'regular', 'regular', 'weekend'], 
+#   'pay_amt': ['pay', 42.09, 56.12, 49.1, 56.12, 61.38, 264.81], 
+#   'shifts': ['shifts', 'shift1', 'shift2', 'shift3', 'shift4', 'shift5', 'total'
+#    }
+# }
+
 def format_hours(hours):
+    data = {}
+
     # create empty lists to append into
-    shift_lengths = []
-    day = []
-    pay_types = []
-    pay_amt = []
-    shifts = []
-    
-    # add each shift as header
-    for i in range(1, len(hours) + 1):
-        shifts.append(f"shift{i}")
+    for n in range(1, 3):
+        shift_lengths = []
+        day = []
+        pay_types = []
+        pay_amt = []
+        shifts = []
+        
+        # add each shift as header
+        for i in range(1, len(hours[f"week_{n}"]) + 1):
+            shifts.append(f"shift{i}")
 
-    #append hours and what day to appropriate lists
-    for i in range(1, len(hours) + 1):
-        day.append(hours[f"shift{i}"][0])
-        shift_lengths.append(hours[f"shift{i}"][1])
+        #append hours and what day to appropriate lists
+        for i in range(1, len(hours[f"week_{n}"]) + 1):
+            day.append(hours[f"week_{n}"][f"shift{i}"][0])
+            shift_lengths.append(hours[f"week_{n}"][f"shift{i}"][1])
 
-    # sum the hours foe a total and put it at the end of the list
-    total_hours = math.fsum(shift_lengths)
-    shift_lengths.append(total_hours)
+        # sum the hours foe a total and put it at the end of the list
+        total_hours = math.fsum(shift_lengths)
+        shift_lengths.append(total_hours)
 
-    # classify pay rate and add to list
-    for i in range(0, len(day)):
-        if day[i] == "Saturday" or day[i] == "Sunday":
-            pay_types.append("weekend")
-        else:
-            pay_types.append("regular")
+        # classify pay rate and add to list
+        for i in range(0, len(day)):
+            if day[i] == "Saturday" or day[i] == "Sunday":
+                pay_types.append("weekend")
+            else:
+                pay_types.append("regular")
 
-    # calculate pay using pay rates and hours and add t list
-    for i in range(0, len(pay_types)):
-        if pay_types[i] == "regular":
-            pay_amt.append(round(14.03 * shift_lengths[i], 2))
-        else:
-            pay_amt.append(round(17.5375 * shift_lengths[i], 2))
-    
-    #sum pay and add to end of list
-    total_pay = sum(pay_amt)
-    pay_amt.append(total_pay)
+        # calculate pay using pay rates and hours and add t list
+        for i in range(0, len(pay_types)):
+            if pay_types[i] == "regular":
+                pay_amt.append(round(14.03 * shift_lengths[i], 2))
+            else:
+                pay_amt.append(round(17.5375 * shift_lengths[i], 2))
+        
+        #sum pay and add to end of list
+        total_pay = sum(pay_amt)
+        pay_amt.append(total_pay)
 
-    # some extra formatting
-    shifts.append("total")
-    shift_lengths.insert(0, "hours")
-    pay_amt.insert(0, "pay")
-    pay_types.insert(0, "pay type")
-    shifts.insert(0, "shifts")
-    day.insert(0, "day")
+        # some extra formatting
+        shifts.append("total")
+        shift_lengths.insert(0, "hours")
+        pay_amt.insert(0, "pay")
+        pay_types.insert(0, "pay type")
+        shifts.insert(0, "shifts")
+        day.insert(0, "day")
 
-    # put it all into a dictionary to unpack in seperate funtion
-    data = {
-        "day": day,
-        "shift_lengths": shift_lengths,
-        "pay_types": pay_types,
-        "pay_amt": pay_amt,
-        "shifts": shifts
-        }
+        # put it all into a dictionary to unpack in seperate funtion
+        data.update(
+            { 
+                f"week_{n}": {
+                    "day": day,
+                    "shift_lengths": shift_lengths,
+                    "pay_types": pay_types,
+                    "pay_amt": pay_amt,
+                    "shifts": shifts
+                }
+            }
+        )
+    print(data)
     return data
 
 def write_to_data_csv(data):
     # unpack dictionary into seperate cariables
-    day = data["day"]
-    shift_lengths = data["shift_lengths"]
-    pay_types = data["pay_types"]
-    pay_amt = data["pay_amt"]
-    shifts = data["shifts"]
+    for i in range(1, 3):
+        day = data[f"week_{i}"]["day"]
+        shift_lengths = data[f"week_{i}"]["shift_lengths"]
+        pay_types = data[f"week_{i}"]["pay_types"]
+        pay_amt = data[f"week_{i}"]["pay_amt"]
+        shifts = data[f"week_{i}"]["shifts"]
 
-    today = datetime.date.today()
-    last_monday = today - datetime.timedelta(days=today.weekday())
-    # write it all to the csv
-    with open(f'data/week_of_{last_monday}.csv', 'w') as file:
-        writer = csv.writer(file)
-        writer.writerow(shifts)
-        writer.writerow(day)
-        writer.writerow(shift_lengths)
-        writer.writerow(pay_types)
-        writer.writerow(pay_amt)
+        today = datetime.date.today()
+        last_monday = today - datetime.timedelta(days=today.weekday())
+        if i == 1:
+            date = last_monday
+        elif i == 2:
+            date = last_monday + datetime.timedelta(days = 7)
+        # write it all to the csv
+        with open(f'data/week_of_{date}.csv', 'w') as file:
+            writer = csv.writer(file)
+            writer.writerow(shifts)
+            writer.writerow(day)
+            writer.writerow(shift_lengths)
+            writer.writerow(pay_types)
+            writer.writerow(pay_amt)
 
 
 
@@ -343,7 +405,7 @@ shifts_and_hours = get_shifts()
 shifts = shifts_and_hours[0]
 
 hours = shifts_and_hours[1]
-
+print(hours)
 write_to_roster_csv(shifts)
 
 import_to_calendar()
@@ -352,13 +414,6 @@ data = format_hours(hours)
 
 write_to_data_csv(data)
 
-##last span, number 2 is the start number 3 is end
-##to get to next shift just add another div[2]/ before span
-#first shift start
-#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/span[2]
-#first shift end
-#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/span[3]
-#second shift start
-#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/span[2]
-#second shift end
-#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/span[3]
+#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/span[3]
+#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[3]/span[2]
+#/html/body/div[6]/div/div[3]/div[2]/div/div/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[2]/div[3]/span[2]
